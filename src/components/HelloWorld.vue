@@ -1,5 +1,7 @@
 <template>
-  <div id="map"></div>
+  <div>
+    <div id="map"></div>
+  </div>
 </template>
 
 <script>
@@ -10,6 +12,10 @@ export default {
     return {
       routePoints: [],
       directionsRenderer: null,
+      startPointIcon: require("../assets/startPoint@0.25x.png"),
+      endPointIcon: require("../assets/endPoint@0.25x.png"),
+      midPointIcon: require("../assets/marker_red.png"),
+      routeSettingFlag: true,
     };
   },
   computed: {
@@ -38,13 +44,13 @@ export default {
         clickableIcons: false,
       });
       this.initMap(map);
-      this.directionsRenderer = new window.google.maps.DirectionsRenderer()
+      this.directionsRenderer = new window.google.maps.DirectionsRenderer();
     });
   },
-  
+
   methods: {
     initMap(map) {
-      console.log('init')
+      console.log("init");
       const that = this;
       map.setOptions({ draggableCursor: "crosshair" });
       navigator.geolocation.getCurrentPosition((position) => {
@@ -55,18 +61,46 @@ export default {
         map.setCenter(pos);
       });
       map.addListener("click", function (event) {
-        that.addPoint(event.latLng.toJSON(), map);
-        that.routing(map);
+        if (that.routePoints.length !== 0 && that.routeSettingFlag) {
+          that.addPoint(event.latLng.toJSON(), map, false);
+          that.routing(map);
+        }
+      });
+      map.addListener("rightclick", function (event) {
+        if (that.routeSettingFlag) {
+          that.addPoint(event.latLng.toJSON(), map, true);
+          that.routing(map);
+        }
       });
     },
-    addPoint(pos, map) {
+    addPoint(pos, map, startEnd) {
       this.routePoints.push(pos);
+      let icon;
+      if (this.routePoints.indexOf(pos) === 0 && startEnd) {
+        icon = {
+          url: this.startPointIcon,
+          size: new window.google.maps.Size(40, 40),
+        };
+      } else if (
+        this.routePoints.indexOf(pos) === this.routePoints.length - 1 &&
+        startEnd
+      ) {
+        icon = {
+          url: this.endPointIcon,
+          size: new window.google.maps.Size(40, 40),
+        };
+        this.routeSettingFlag = false;
+      } else {
+        icon = this.midPointIcon;
+      }
       const marker = new window.google.maps.Marker({
         position: pos,
         map: map,
         zIndex: 1100,
+        icon: icon,
       });
       marker.addListener("dblclick", () => {
+        this.routeSettingFlag = true;
         marker.setMap(null);
         this.routePoints = this.routePoints.filter((point) => point !== pos);
         this.routing(map);
