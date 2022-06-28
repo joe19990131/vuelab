@@ -1,6 +1,7 @@
 <template>
   <div>
     <div id="map"></div>
+    <button @click="saveRoute" :disabled="routeSettingFlag">save</button>
   </div>
 </template>
 
@@ -12,10 +13,13 @@ export default {
     return {
       routePoints: [],
       directionsRenderer: null,
+      map: null,
+      loader: null,
       startPointIcon: require("../assets/startPoint@0.25x.png"),
       endPointIcon: require("../assets/endPoint@0.25x.png"),
-      midPointIcon: require("../assets/marker_red.png"),
+      midPointIcon: require("../assets/midPoint@0.5x.png"),
       routeSettingFlag: true,
+      step: 1,
     };
   },
   computed: {
@@ -31,48 +35,87 @@ export default {
     },
   },
   created() {
-    const loader = new Loader({
+    this.loader = new Loader({
       apiKey: "AIzaSyDkxHGQuiLxyyVaRkvKrJRKb1-La-7T6nY",
       version: "weekly",
     });
-    loader.load().then(() => {
-      const map = new window.google.maps.Map(document.getElementById("map"), {
-        center: { lat: -34.397, lng: 150.644 },
-        zoom: 18,
-        mapTypeControl: false,
-        mapTypeId: "roadmap",
-        clickableIcons: false,
-      });
-      this.initMap(map);
-      this.directionsRenderer = new window.google.maps.DirectionsRenderer();
-    });
+    this.initMap();
   },
 
   methods: {
-    initMap(map) {
-      console.log("init");
+    initMap() {
       const that = this;
-      map.setOptions({ draggableCursor: "crosshair" });
-      navigator.geolocation.getCurrentPosition((position) => {
-        const pos = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        map.setCenter(pos);
-      });
-      map.addListener("click", function (event) {
-        if (that.routePoints.length !== 0 && that.routeSettingFlag) {
-          that.addPoint(event.latLng.toJSON(), map, false);
-          that.routing(map);
+      this.loader.load().then(() => {
+        this.map = new window.google.maps.Map(document.getElementById("map"), {
+          center: { lat: -34.397, lng: 150.644 },
+          zoom: 18,
+          mapTypeControl: false,
+          mapTypeId: "roadmap",
+          clickableIcons: false,
+        });
+        //設置預設游標樣式
+        this.map.setOptions({ draggableCursor: "crosshair" });
+
+        //地圖初始定位
+        navigator.geolocation.getCurrentPosition((position) => {
+          const pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          this.map.setCenter(pos);
+        });
+
+        //顯示保存路線
+        if (
+          this.routePoints.length !== 0 &&
+          !this.routeSettingFlag &&
+          this.step === 2
+        ) {
+          this.routing(this.map);
+          const startMarker = new window.google.maps.Marker();
+          startMarker.setOptions({
+            position: this.routePoints[0],
+            map: this.map,
+            zIndex: 1100,
+            icon: {
+              url: this.startPointIcon,
+              size: new window.google.maps.Size(40, 40),
+            },
+          });
+
+          const endMarker = new window.google.maps.Marker();
+          endMarker.setOptions({
+            position: this.routePoints[this.routePoints.length - 1],
+            map: this.map,
+            zIndex: 1100,
+            icon: {
+              url: this.endPointIcon,
+              size: new window.google.maps.Size(40, 40),
+            },
+          });
         }
-      });
-      map.addListener("rightclick", function (event) {
-        if (that.routeSettingFlag) {
-          that.addPoint(event.latLng.toJSON(), map, true);
-          that.routing(map);
-        }
+
+        //click event
+        this.map.addListener("click", function (event) {
+          if (
+            that.routePoints.length !== 0 &&
+            that.routeSettingFlag &&
+            that.step === 1
+          ) {
+            that.addPoint(event.latLng.toJSON(), that.map, false);
+            that.routing(that.map);
+          }
+        });
+        this.map.addListener("rightclick", function (event) {
+          if (that.routeSettingFlag && that.step === 1) {
+            that.addPoint(event.latLng.toJSON(), that.map, true);
+            that.routing(that.map);
+          }
+        });
+        this.directionsRenderer = new window.google.maps.DirectionsRenderer();
       });
     },
+
     addPoint(pos, map, startEnd) {
       this.routePoints.push(pos);
       let icon;
@@ -83,7 +126,8 @@ export default {
         };
       } else if (
         this.routePoints.indexOf(pos) === this.routePoints.length - 1 &&
-        startEnd
+        startEnd &&
+        this.routePoints.length > 1
       ) {
         icon = {
           url: this.endPointIcon,
@@ -91,7 +135,10 @@ export default {
         };
         this.routeSettingFlag = false;
       } else {
-        icon = this.midPointIcon;
+        icon = {
+          url: this.step === 1 ? this.midPointIcon : "",
+          anchor: new window.google.maps.Point(0, 10),
+        };
       }
       const marker = new window.google.maps.Marker({
         position: pos,
@@ -100,14 +147,43 @@ export default {
         icon: icon,
       });
       marker.addListener("dblclick", () => {
-        this.routeSettingFlag = true;
-        marker.setMap(null);
-        this.routePoints = this.routePoints.filter((point) => point !== pos);
-        this.routing(map);
+        if (this.step === 1) {
+          if (
+            //完成後中途點刪除
+            !this.routeSettingFlag &&
+            pos !== this.routePoints[0] &&
+            pos !== this.routePoints[this.routePoints.length - 1]
+          ) {
+            this.routeSettingFlag = true;
+            marker.setMap(null);
+            this.routePoints = this.routePoints.filter(
+              (point) => point !== pos
+            );
+            this.routing(map);
+            this.routeSettingFlag = false;
+          } else if (
+            //完成後終點刪除
+            pos === this.routePoints[this.routePoints.length - 1]
+          ) {
+            this.routeSettingFlag = true;
+            marker.setMap(null);
+            this.routePoints = this.routePoints.filter(
+              (point) => point !== pos
+            );
+            this.routing(map);
+          } else if (this.routePoints.length < 2) {
+            this.routeSettingFlag = true;
+            marker.setMap(null);
+            this.routePoints = this.routePoints.filter(
+              (point) => point !== pos
+            );
+            this.routing(map);
+          }
+        }
       });
     },
+
     routing(map) {
-      console.log("draw line");
       const directionsService = new window.google.maps.DirectionsService();
       //const directionsRenderer = new window.google.maps.DirectionsRenderer();
       let directionsDisplay = this.directionsRenderer;
@@ -134,6 +210,14 @@ export default {
       } else {
         directionsDisplay.setMap(null);
       }
+    },
+
+    saveRoute() {
+      this.initMap();
+
+      //road save api here
+
+      this.step = 2;
     },
   },
 };
