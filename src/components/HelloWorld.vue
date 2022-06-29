@@ -19,6 +19,7 @@ export default {
       endPointIcon: require("../assets/endPoint@0.25x.png"),
       midPointIcon: require("../assets/midPoint@0.5x.png"),
       routeSettingFlag: true,
+      distance: 0,
       step: 1,
     };
   },
@@ -47,6 +48,7 @@ export default {
       const that = this;
       this.loader.load().then(() => {
         this.map = new window.google.maps.Map(document.getElementById("map"), {
+          mapId: "5216cd334b4588dc",
           center: { lat: -34.397, lng: 150.644 },
           zoom: 18,
           mapTypeControl: false,
@@ -97,19 +99,25 @@ export default {
 
         //click event
         this.map.addListener("click", function (event) {
+          let pos = {lat:event.latLng.toJSON().lat,lng:event.latLng.toJSON().lng}
           if (
             that.routePoints.length !== 0 &&
             that.routeSettingFlag &&
             that.step === 1
           ) {
-            that.addPoint(event.latLng.toJSON(), that.map, false);
+            that.routePoints.push(pos);
             that.routing(that.map);
+            that.addPoint(pos, that.map, false);
+            
           }
         });
         this.map.addListener("rightclick", function (event) {
+          let pos = {lat:event.latLng.toJSON().lat,lng:event.latLng.toJSON().lng}
           if (that.routeSettingFlag && that.step === 1) {
-            that.addPoint(event.latLng.toJSON(), that.map, true);
+            that.routePoints.push(pos);
             that.routing(that.map);
+            that.addPoint(pos, that.map, true);
+            
           }
         });
         this.directionsRenderer = new window.google.maps.DirectionsRenderer();
@@ -117,8 +125,9 @@ export default {
     },
 
     addPoint(pos, map, startEnd) {
-      this.routePoints.push(pos);
       let icon;
+
+      //icon判別
       if (this.routePoints.indexOf(pos) === 0 && startEnd) {
         icon = {
           url: this.startPointIcon,
@@ -133,6 +142,7 @@ export default {
           url: this.endPointIcon,
           size: new window.google.maps.Size(40, 40),
         };
+
         this.routeSettingFlag = false;
       } else {
         icon = {
@@ -140,12 +150,28 @@ export default {
           anchor: new window.google.maps.Point(0, 10),
         };
       }
+
       const marker = new window.google.maps.Marker({
         position: pos,
         map: map,
         zIndex: 1100,
         icon: icon,
       });
+
+
+      if (
+        this.routePoints.indexOf(pos) === this.routePoints.length - 1 &&
+        startEnd &&
+        this.routePoints.length > 1
+      ) {
+        console.log(this.distance+'<---');
+        const infowindow = new window.google.maps.InfoWindow({
+          content: `<div>${this.distance} 公尺</div>`,
+        });
+        infowindow.open({ anchor: marker, map });
+      }
+
+
       marker.addListener("dblclick", () => {
         if (this.step === 1) {
           if (
@@ -184,6 +210,7 @@ export default {
     },
 
     routing(map) {
+      const that = this;
       const directionsService = new window.google.maps.DirectionsService();
       //const directionsRenderer = new window.google.maps.DirectionsRenderer();
       let directionsDisplay = this.directionsRenderer;
@@ -196,8 +223,14 @@ export default {
           destination: pointB,
           waypoints: this.wayPoints,
           travelMode: "WALKING",
+          //unitSystem: window.google.maps.UnitSystem.METRIC
         };
         directionsService.route(directionReq, function (res) {
+          that.distance = 0;
+          res.routes[0].legs.forEach((leg) => {
+            that.distance += leg.distance.value;
+          });
+          console.log(that.distance);
           directionsDisplay.setDirections(res);
           directionsDisplay.setOptions({
             map: map,
