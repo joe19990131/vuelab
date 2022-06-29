@@ -15,6 +15,7 @@ export default {
       directionsRenderer: null,
       map: null,
       loader: null,
+      distancePopup:null,
       startPointIcon: require("../assets/startPoint@0.25x.png"),
       endPointIcon: require("../assets/endPoint@0.25x.png"),
       midPointIcon: require("../assets/midPoint@0.5x.png"),
@@ -99,7 +100,10 @@ export default {
 
         //click event
         this.map.addListener("click", function (event) {
-          let pos = {lat:event.latLng.toJSON().lat,lng:event.latLng.toJSON().lng}
+          let pos = {
+            lat: event.latLng.toJSON().lat,
+            lng: event.latLng.toJSON().lng,
+          };
           if (
             that.routePoints.length !== 0 &&
             that.routeSettingFlag &&
@@ -108,16 +112,17 @@ export default {
             that.routePoints.push(pos);
             that.routing(that.map);
             that.addPoint(pos, that.map, false);
-            
           }
         });
         this.map.addListener("rightclick", function (event) {
-          let pos = {lat:event.latLng.toJSON().lat,lng:event.latLng.toJSON().lng}
+          let pos = {
+            lat: event.latLng.toJSON().lat,
+            lng: event.latLng.toJSON().lng,
+          };
           if (that.routeSettingFlag && that.step === 1) {
             that.routePoints.push(pos);
             that.routing(that.map);
             that.addPoint(pos, that.map, true);
-            
           }
         });
         this.directionsRenderer = new window.google.maps.DirectionsRenderer();
@@ -158,20 +163,6 @@ export default {
         icon: icon,
       });
 
-
-      if (
-        this.routePoints.indexOf(pos) === this.routePoints.length - 1 &&
-        startEnd &&
-        this.routePoints.length > 1
-      ) {
-        console.log(this.distance+'<---');
-        const infowindow = new window.google.maps.InfoWindow({
-          content: `<div>${this.distance} 公尺</div>`,
-        });
-        infowindow.open({ anchor: marker, map });
-      }
-
-
       marker.addListener("dblclick", () => {
         if (this.step === 1) {
           if (
@@ -180,6 +171,7 @@ export default {
             pos !== this.routePoints[0] &&
             pos !== this.routePoints[this.routePoints.length - 1]
           ) {
+            this.distancePopup.close()
             this.routeSettingFlag = true;
             marker.setMap(null);
             this.routePoints = this.routePoints.filter(
@@ -230,6 +222,22 @@ export default {
           res.routes[0].legs.forEach((leg) => {
             that.distance += leg.distance.value;
           });
+
+          if (
+            that.routePoints.length > 1 &&
+            !that.routeSettingFlag &&
+            that.step === 1
+          ) {
+            console.log(that.distance + "<---");
+            that.distancePopup = new window.google.maps.InfoWindow();
+            
+            that.distancePopup.setOptions({
+              content: `<div>${that.distance} 公尺</div>`,
+              position: that.routePoints[that.routePoints.length - 1],
+            });
+            that.distancePopup.open(map);
+          }
+
           console.log(that.distance);
           directionsDisplay.setDirections(res);
           directionsDisplay.setOptions({
