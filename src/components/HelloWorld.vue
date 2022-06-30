@@ -1,9 +1,7 @@
 <template>
-  <div>
+  <div class="content">
     <div class="control_panel">
-      <button class="save_btn" @click="saveRoute" :disabled="(routeSettingFlag && step  === 1)||step === 2">
-        保存路線
-      </button>
+      <button class="save_btn" @click="saveRoute" :disabled="(routeSettingFlag && step === 1) || step === 2">保存路線</button>
       <div class="discription">
         <ul>
           <li>點擊右鍵新增起訖點</li>
@@ -16,9 +14,9 @@
 </template>
 
 <script>
-import { Loader } from "@googlemaps/js-api-loader";
+import { Loader } from '@googlemaps/js-api-loader';
 export default {
-  name: "HelloWorld",
+  name: 'HelloWorld',
   data() {
     return {
       routePoints: [],
@@ -27,9 +25,9 @@ export default {
       map: null,
       loader: null,
       distancePopup: null,
-      startPointIcon: require("../assets/startPoint@0.25x.png"),
-      endPointIcon: require("../assets/endPoint@0.25x.png"),
-      midPointIcon: require("../assets/midPoint@0.5x.png"),
+      startPointIcon: require('../assets/startPoint@0.25x.png'),
+      endPointIcon: require('../assets/endPoint@0.25x.png'),
+      midPointIcon: require('../assets/midPoint@0.5x.png'),
       routeSettingFlag: true,
       distance: 0,
       step: 1,
@@ -49,8 +47,8 @@ export default {
   },
   created() {
     this.loader = new Loader({
-      apiKey: "AIzaSyDkxHGQuiLxyyVaRkvKrJRKb1-La-7T6nY",
-      version: "weekly",
+      apiKey: 'AIzaSyDkxHGQuiLxyyVaRkvKrJRKb1-La-7T6nY',
+      version: 'weekly',
     });
     this.initMap();
   },
@@ -59,16 +57,16 @@ export default {
     initMap() {
       const that = this;
       this.loader.load().then(() => {
-        this.map = new window.google.maps.Map(document.getElementById("map"), {
-          mapId: "5216cd334b4588dc",
+        this.map = new window.google.maps.Map(document.getElementById('map'), {
+          mapId: '5216cd334b4588dc',
           center: { lat: -34.397, lng: 150.644 },
           zoom: 18,
           mapTypeControl: false,
-          mapTypeId: "roadmap",
+          mapTypeId: 'roadmap',
           clickableIcons: false,
         });
         //設置預設游標樣式
-        this.map.setOptions({ draggableCursor: "crosshair" });
+        this.map.setOptions({ draggableCursor: 'crosshair' });
 
         //地圖初始定位
         navigator.geolocation.getCurrentPosition((position) => {
@@ -82,22 +80,18 @@ export default {
         //顯示保存路線
 
         //click event
-        this.map.addListener("click", function (event) {
+        this.map.addListener('click', function (event) {
           let pos = {
             lat: event.latLng.toJSON().lat,
             lng: event.latLng.toJSON().lng,
           };
-          if (
-            that.routePoints.length !== 0 &&
-            that.routeSettingFlag &&
-            that.step === 1
-          ) {
+          if (that.routePoints.length !== 0 && that.routeSettingFlag && that.step === 1) {
             that.routePoints.push(pos);
             that.routing(that.map);
             that.addPoint(pos, that.map, false);
           }
         });
-        this.map.addListener("rightclick", function (event) {
+        this.map.addListener('rightclick', function (event) {
           let pos = {
             lat: event.latLng.toJSON().lat,
             lng: event.latLng.toJSON().lng,
@@ -121,11 +115,7 @@ export default {
           url: this.startPointIcon,
           size: new window.google.maps.Size(40, 40),
         };
-      } else if (
-        this.routePoints.indexOf(pos) === this.routePoints.length - 1 &&
-        startEnd &&
-        this.routePoints.length > 1
-      ) {
+      } else if (this.routePoints.indexOf(pos) === this.routePoints.length - 1 && startEnd && this.routePoints.length > 1) {
         icon = {
           url: this.endPointIcon,
           size: new window.google.maps.Size(40, 40),
@@ -134,7 +124,7 @@ export default {
         this.routeSettingFlag = false;
       } else {
         icon = {
-          url: this.step === 1 ? this.midPointIcon : "",
+          url: this.step === 1 ? this.midPointIcon : '',
           anchor: new window.google.maps.Point(0, 10),
         };
       }
@@ -146,8 +136,8 @@ export default {
         icon: icon,
       });
 
-      marker.addListener("dblclick", () => {
-        console.log("dblc");
+      marker.addListener('dblclick', () => {
+        console.log('dblc');
         if (this.step === 1) {
           if (
             //完成後中途點刪除
@@ -159,9 +149,7 @@ export default {
             this.polyLinePoint = [];
             this.routeSettingFlag = true;
             marker.setMap(null);
-            this.routePoints = this.routePoints.filter(
-              (point) => point !== pos
-            );
+            this.routePoints = this.routePoints.filter((point) => point !== pos);
             this.routing(map);
             this.routeSettingFlag = false;
           } else if (
@@ -171,22 +159,16 @@ export default {
             this.polyLinePoint = [];
             this.routeSettingFlag = true;
             marker.setMap(null);
-            this.routePoints = this.routePoints.filter(
-              (point) => point !== pos
-            );
+            this.routePoints = this.routePoints.filter((point) => point !== pos);
             this.routing(map);
           } else if (this.routePoints.length < 2) {
             this.routeSettingFlag = true;
             marker.setMap(null);
-            this.routePoints = this.routePoints.filter(
-              (point) => point !== pos
-            );
+            this.routePoints = this.routePoints.filter((point) => point !== pos);
             this.routing(map);
           } else {
             marker.setMap(null);
-            this.routePoints = this.routePoints.filter(
-              (point) => point !== pos
-            );
+            this.routePoints = this.routePoints.filter((point) => point !== pos);
             this.routing(map);
           }
         }
@@ -206,7 +188,7 @@ export default {
           origin: pointA,
           destination: pointB,
           waypoints: this.wayPoints,
-          travelMode: "WALKING",
+          travelMode: 'WALKING',
           //unitSystem: window.google.maps.UnitSystem.METRIC
         };
         directionsService.route(directionReq, function (res) {
@@ -215,12 +197,8 @@ export default {
             that.distance += leg.distance.value;
           });
 
-          if (
-            that.routePoints.length > 1 &&
-            !that.routeSettingFlag &&
-            that.step === 1
-          ) {
-            console.log(that.distance + "<---");
+          if (that.routePoints.length > 1 && !that.routeSettingFlag && that.step === 1) {
+            console.log(that.distance + '<---');
             that.distancePopup = new window.google.maps.InfoWindow();
 
             that.distancePopup.setOptions({
@@ -256,16 +234,16 @@ export default {
       this.step = 2;
 
       this.loader.load().then(() => {
-        this.map = new window.google.maps.Map(document.getElementById("map"), {
-          mapId: "5216cd334b4588dc",
+        this.map = new window.google.maps.Map(document.getElementById('map'), {
+          mapId: '5216cd334b4588dc',
           center: { lat: -34.397, lng: 150.644 },
           zoom: 18,
           mapTypeControl: false,
-          mapTypeId: "roadmap",
+          mapTypeId: 'roadmap',
           clickableIcons: false,
         });
         //設置預設游標樣式
-        this.map.setOptions({ draggableCursor: "crosshair" });
+        this.map.setOptions({ draggableCursor: 'crosshair' });
         //定位
         navigator.geolocation.getCurrentPosition((position) => {
           const pos = {
@@ -278,11 +256,11 @@ export default {
         for (let i = 0; i < this.polyLinePoint.length - 1; i++) {
           let line = [this.polyLinePoint[i], this.polyLinePoint[i + 1]];
           console.log(line);
-          console.log(i + " " + (i + 1));
+          console.log(i + ' ' + (i + 1));
           const polyRoute = new window.google.maps.Polyline({
             path: line,
             geodesic: true,
-            strokeColor: "#ffa200",
+            strokeColor: '#ffa200',
             strokeOpacity: 0.8,
             strokeWeight: 5,
           });
@@ -319,40 +297,45 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.content {
+  width: 1440px;
+  height: 100%;
+  padding: 12px 0;
+}
 #map {
-  width: 90vw;
-  height: 90vh;
+  width: 100%;
+  height: 90%;
 }
 a {
   color: #42b983;
 }
 .control_panel {
+  height: 10%;
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
-  align-content: center;
+  align-items: center;
+  margin: auto;
 }
 ul {
   text-align: left;
-
 }
-.save_btn{
+.save_btn {
   height: 48px;
   width: 120px;
-  align-self: center;
   background-color: #1691e9;
   color: #fff;
   border-radius: 8px;
-  font-size:16px;
+  font-size: 16px;
   font-weight: bold;
   box-shadow: none;
   border: none;
   cursor: pointer;
 }
-.save_btn:hover{
-   background-color: #0069b5;
+.save_btn:hover {
+  background-color: #0069b5;
 }
-.save_btn:disabled{
+.save_btn:disabled {
   background-color: #a0cbeb;
   cursor: not-allowed;
 }
