@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="control_panel">
-      <button class="save_btn" @click="saveRoute" :disabled="routeSettingFlag">
+      <button class="save_btn" @click="saveRoute" :disabled="routeSettingFlag && step  === 1">
         保存路線
       </button>
       <div class="discription">
