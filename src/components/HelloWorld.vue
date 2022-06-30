@@ -1,7 +1,17 @@
 <template>
   <div>
+    <div class="control_panel">
+      <button class="save_btn" @click="saveRoute" :disabled="routeSettingFlag">
+        保存路線
+      </button>
+      <div class="discription">
+        <ul>
+          <li>點擊右鍵新增起訖點</li>
+          <li>單擊左鍵新增中繼點，雙擊刪除節點</li>
+        </ul>
+      </div>
+    </div>
     <div id="map"></div>
-    <button @click="saveRoute" :disabled="routeSettingFlag">save</button>
   </div>
 </template>
 
@@ -12,10 +22,11 @@ export default {
   data() {
     return {
       routePoints: [],
+      polyLinePoint: [],
       directionsRenderer: null,
       map: null,
       loader: null,
-      distancePopup:null,
+      distancePopup: null,
       startPointIcon: require("../assets/startPoint@0.25x.png"),
       endPointIcon: require("../assets/endPoint@0.25x.png"),
       midPointIcon: require("../assets/midPoint@0.5x.png"),
@@ -69,34 +80,6 @@ export default {
         });
 
         //顯示保存路線
-        if (
-          this.routePoints.length !== 0 &&
-          !this.routeSettingFlag &&
-          this.step === 2
-        ) {
-          this.routing(this.map);
-          const startMarker = new window.google.maps.Marker();
-          startMarker.setOptions({
-            position: this.routePoints[0],
-            map: this.map,
-            zIndex: 1100,
-            icon: {
-              url: this.startPointIcon,
-              size: new window.google.maps.Size(40, 40),
-            },
-          });
-
-          const endMarker = new window.google.maps.Marker();
-          endMarker.setOptions({
-            position: this.routePoints[this.routePoints.length - 1],
-            map: this.map,
-            zIndex: 1100,
-            icon: {
-              url: this.endPointIcon,
-              size: new window.google.maps.Size(40, 40),
-            },
-          });
-        }
 
         //click event
         this.map.addListener("click", function (event) {
@@ -164,6 +147,7 @@ export default {
       });
 
       marker.addListener("dblclick", () => {
+        console.log("dblc");
         if (this.step === 1) {
           if (
             //完成後中途點刪除
@@ -171,7 +155,8 @@ export default {
             pos !== this.routePoints[0] &&
             pos !== this.routePoints[this.routePoints.length - 1]
           ) {
-            this.distancePopup.close()
+            this.distancePopup.close();
+            this.polyLinePoint = [];
             this.routeSettingFlag = true;
             marker.setMap(null);
             this.routePoints = this.routePoints.filter(
@@ -183,6 +168,7 @@ export default {
             //完成後終點刪除
             pos === this.routePoints[this.routePoints.length - 1]
           ) {
+            this.polyLinePoint = [];
             this.routeSettingFlag = true;
             marker.setMap(null);
             this.routePoints = this.routePoints.filter(
@@ -191,6 +177,12 @@ export default {
             this.routing(map);
           } else if (this.routePoints.length < 2) {
             this.routeSettingFlag = true;
+            marker.setMap(null);
+            this.routePoints = this.routePoints.filter(
+              (point) => point !== pos
+            );
+            this.routing(map);
+          } else {
             marker.setMap(null);
             this.routePoints = this.routePoints.filter(
               (point) => point !== pos
@@ -230,15 +222,18 @@ export default {
           ) {
             console.log(that.distance + "<---");
             that.distancePopup = new window.google.maps.InfoWindow();
-            
+
             that.distancePopup.setOptions({
               content: `<div>${that.distance} 公尺</div>`,
               position: that.routePoints[that.routePoints.length - 1],
             });
             that.distancePopup.open(map);
+            res.routes[0].overview_path.forEach((point) => {
+              that.polyLinePoint.push(point);
+            });
           }
 
-          console.log(that.distance);
+          console.log(res.routes[0]);
           directionsDisplay.setDirections(res);
           directionsDisplay.setOptions({
             map: map,
@@ -254,11 +249,69 @@ export default {
     },
 
     saveRoute() {
-      this.initMap();
+      //this.initMap();
 
       //road save api here
 
       this.step = 2;
+
+      this.loader.load().then(() => {
+        this.map = new window.google.maps.Map(document.getElementById("map"), {
+          mapId: "5216cd334b4588dc",
+          center: { lat: -34.397, lng: 150.644 },
+          zoom: 18,
+          mapTypeControl: false,
+          mapTypeId: "roadmap",
+          clickableIcons: false,
+        });
+        //設置預設游標樣式
+        this.map.setOptions({ draggableCursor: "crosshair" });
+        //定位
+        navigator.geolocation.getCurrentPosition((position) => {
+          const pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          this.map.setCenter(pos);
+        });
+        console.log(this.polyLinePoint);
+        for (let i = 0; i < this.polyLinePoint.length - 1; i++) {
+          let line = [this.polyLinePoint[i], this.polyLinePoint[i + 1]];
+          console.log(line);
+          console.log(i + " " + (i + 1));
+          const polyRoute = new window.google.maps.Polyline({
+            path: line,
+            geodesic: true,
+            strokeColor: "#ffa200",
+            strokeOpacity: 0.8,
+            strokeWeight: 5,
+          });
+
+          polyRoute.setMap(this.map);
+        }
+
+        const startMarker = new window.google.maps.Marker();
+        startMarker.setOptions({
+          position: this.routePoints[0],
+          map: this.map,
+          zIndex: 1100,
+          icon: {
+            url: this.startPointIcon,
+            size: new window.google.maps.Size(40, 40),
+          },
+        });
+
+        const endMarker = new window.google.maps.Marker();
+        endMarker.setOptions({
+          position: this.routePoints[this.routePoints.length - 1],
+          map: this.map,
+          zIndex: 1100,
+          icon: {
+            url: this.endPointIcon,
+            size: new window.google.maps.Size(40, 40),
+          },
+        });
+      });
     },
   },
 };
@@ -272,5 +325,35 @@ export default {
 }
 a {
   color: #42b983;
+}
+.control_panel {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-content: center;
+}
+ul {
+  text-align: left;
+
+}
+.save_btn{
+  height: 48px;
+  width: 120px;
+  align-self: center;
+  background-color: #1691e9;
+  color: #fff;
+  border-radius: 8px;
+  font-size:16px;
+  font-weight: bold;
+  box-shadow: none;
+  border: none;
+  cursor: pointer;
+}
+.save_btn:hover{
+   background-color: #0069b5;
+}
+.save_btn:disabled{
+  background-color: #a0cbeb;
+  cursor: not-allowed;
 }
 </style>
