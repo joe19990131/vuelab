@@ -3,10 +3,12 @@
     <div class="control_panel">
       <button
         class="save_btn"
-        @click="step === 'routeEdit'?saveRoute():startRoute()"
-        :disabled="(step === 'routeEdit'&&routeSettingFlag)||step==='routrEdit' "
+        @click="step === 'routeEdit' ? saveRoute() : startRoute()"
+        :disabled="
+          (step === 'routeEdit' && routeSettingFlag) || step === 'routrEdit'
+        "
       >
-        {{step === 'routeEdit'?"保存路線":"添加路線"}}
+        {{ step === "routeEdit" ? "保存路線" : "添加路線" }}
       </button>
       <div class="discription">
         <ul>
@@ -38,6 +40,7 @@ export default {
       routeSettingFlag: true,
       distance: 0,
       step: "siteEdit",
+      tipContent: false,
       //STEP OPTION："routeEdit","siteEdit"
     };
   },
@@ -85,11 +88,25 @@ export default {
           };
           this.map.setCenter(pos);
         });
-
-        //顯示保存路線
-
+        let div = document.createElement("div");
+        let mapDiv = document.getElementById("map")
+        div.setAttribute("id", "tip_content");
+        let newContent = document.createTextNode("Hi there and greetings!");
+        div.appendChild(newContent);
+        div.style.backgroundColor = "white";
+        div.style.borderRadius = "4px";
+        div.style.padding = "4px 8px";
+        div.style.boxShadow = "2px 2px 4px black";
+        div.style.position = "fixed";
+        div.style.zIndex = "9999";
+        mapDiv.appendChild(div)
         //click event
+        this.map.addListener("mousemove", function (e) {
+          div.style.top = `${e.domEvent.pageY-30}px`;
+          div.style.left = `${e.domEvent.pageX+5}px`;
+        });
         this.map.addListener("click", function (event) {
+          console.log(event);
           let pos = {
             lat: event.latLng.toJSON().lat,
             lng: event.latLng.toJSON().lng,
@@ -165,7 +182,7 @@ export default {
             pos !== this.routePoints[this.routePoints.length - 1]
           ) {
             this.distancePopup.close();
-            this.polyLinePoint = {}
+            this.polyLinePoint = {};
             this.routeSettingFlag = true;
             marker.setMap(null);
             this.routePoints = this.routePoints.filter(
@@ -177,7 +194,7 @@ export default {
             //完成後終點刪除
             pos === this.routePoints[this.routePoints.length - 1]
           ) {
-            this.polyLinePoint = {}
+            this.polyLinePoint = {};
             this.routeSettingFlag = true;
             marker.setMap(null);
             this.routePoints = this.routePoints.filter(
@@ -203,7 +220,6 @@ export default {
     },
 
     routing(map) {
-
       const that = this;
       const directionsService = new window.google.maps.DirectionsService();
       //const directionsRenderer = new window.google.maps.DirectionsRenderer();
@@ -238,15 +254,14 @@ export default {
               position: that.routePoints[that.routePoints.length - 1],
             });
             that.distancePopup.open(map);
-            let points = []
+            let points = [];
             res.routes[0].overview_path.forEach((point) => {
               points.push(point);
             });
             that.polyLinePoint = {
-              name:`route${that.savedRoutes.length+1}`,
-              points:points
-            }
-            
+              name: `route${that.savedRoutes.length + 1}`,
+              points: points,
+            };
           }
 
           console.log(res.routes[0]);
@@ -263,15 +278,15 @@ export default {
         directionsDisplay.setMap(null);
       }
     },
-    startRoute(){
+    startRoute() {
       this.step = "routeEdit";
-      this.routeSettingFlag = true
-      this.initMap()
-      console.log('start');
+      this.routeSettingFlag = true;
+      this.initMap();
+      console.log("start");
     },
     saveRoute() {
       //road save api here
-      this.routeSettingFlag = true
+      this.routeSettingFlag = true;
       this.step = "siteEdit";
       this.savedRoutes.push(this.polyLinePoint);
       console.log(this.savedRoutes);
@@ -294,7 +309,7 @@ export default {
           };
           this.map.setCenter(pos);
         });
-        this.savedRoutes.forEach((route,idx) => {
+        this.savedRoutes.forEach((route, idx) => {
           console.log(route);
           for (let i = 0; i < route.points.length - 1; i++) {
             let line = [route.points[i], route.points[i + 1]];
