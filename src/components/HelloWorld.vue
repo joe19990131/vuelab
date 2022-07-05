@@ -1,6 +1,12 @@
 <template>
   <div class="content">
     <div class="control_panel">
+      <input
+        id="pac_input"
+        class="controls"
+        type="text"
+        placeholder="Search Box"
+      />
       <button
         class="save_btn"
         @click="step === 'routeEdit' ? saveRoute() : startRoute()"
@@ -40,7 +46,7 @@ export default {
       routeSettingFlag: true,
       distance: 0,
       step: "siteEdit",
-      tipContent: false,
+      tipContent: "點擊右鍵開始繪製",
       //STEP OPTION："routeEdit","siteEdit"
     };
   },
@@ -88,10 +94,13 @@ export default {
           };
           this.map.setCenter(pos);
         });
+
+        this.initAutoComplete()
+
         let div = document.createElement("div");
-        let mapDiv = document.getElementById("map")
+        let mapDiv = document.getElementById("map");
         div.setAttribute("id", "tip_content");
-        let newContent = document.createTextNode("Hi there and greetings!");
+        let newContent = document.createTextNode(this.tipContent);
         div.appendChild(newContent);
         div.style.backgroundColor = "white";
         div.style.borderRadius = "4px";
@@ -99,11 +108,18 @@ export default {
         div.style.boxShadow = "2px 2px 4px black";
         div.style.position = "fixed";
         div.style.zIndex = "9999";
-        mapDiv.appendChild(div)
+        mapDiv.appendChild(div);
+        div.style.display = "none";
+
         //click event
         this.map.addListener("mousemove", function (e) {
-          div.style.top = `${e.domEvent.pageY-30}px`;
-          div.style.left = `${e.domEvent.pageX+5}px`;
+          div.style.display = "block";
+          div.style.top = `${e.domEvent.pageY - 30}px`;
+          div.style.left = `${e.domEvent.pageX + 5}px`;
+        });
+        this.map.addListener("mouseout", function () {
+          console.log("mouseout");
+          div.style.display = "none";
         });
         this.map.addListener("click", function (event) {
           console.log(event);
@@ -278,12 +294,14 @@ export default {
         directionsDisplay.setMap(null);
       }
     },
+
     startRoute() {
       this.step = "routeEdit";
       this.routeSettingFlag = true;
       this.initMap();
       console.log("start");
     },
+
     saveRoute() {
       //road save api here
       this.routeSettingFlag = true;
@@ -350,6 +368,15 @@ export default {
         });
       });
     },
+
+    initAutoComplete() {
+      const input = document.getElementById("pac_input");
+      //const searchBox = new window.google.maps.places.SearchBox(input);
+      this.map.controls[window.google.maps.ControlPosition.TOP_LEFT].push(
+        input
+      );
+      
+    },
     filterLineColor(num) {
       // 路线颜色
       let temp = num % 5;
@@ -383,7 +410,8 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .content {
-  width: 1440px;
+  max-width: 1440px;
+  width: 80%;
   height: 100%;
   padding: 12px 0;
 }
