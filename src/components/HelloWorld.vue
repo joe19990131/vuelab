@@ -47,6 +47,7 @@ export default {
       distance: 0,
       step: "siteEdit",
       tipContent: "點擊右鍵開始繪製",
+      centerLanLng: null,
       //STEP OPTION："routeEdit","siteEdit"
     };
   },
@@ -92,10 +93,15 @@ export default {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
-          this.map.setCenter(pos);
+          console.log(that.centerLanLng);
+          if (that.centerLanLng) {
+            that.map.fitBounds(that.centerLanLng);
+          } else {
+            that.map.setCenter(pos);
+          }
         });
 
-        this.initAutoComplete()
+        this.initAutoComplete();
 
         let div = document.createElement("div");
         let mapDiv = document.getElementById("map");
@@ -325,7 +331,11 @@ export default {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
-          this.map.setCenter(pos);
+          if (this.centerLanLng) {
+            this.map.fitBounds(this.centerLanLng);
+          } else {
+            this.map.setCenter(pos);
+          }
         });
         this.savedRoutes.forEach((route, idx) => {
           console.log(route);
@@ -367,15 +377,47 @@ export default {
           });
         });
       });
+      this.initAutoComplete();
     },
 
     initAutoComplete() {
+      let map = this.map;
       const input = document.getElementById("pac_input");
-      //const searchBox = new window.google.maps.places.SearchBox(input);
+      const searchBox = new window.google.maps.places.SearchBox(input);
       this.map.controls[window.google.maps.ControlPosition.TOP_LEFT].push(
         input
       );
-      
+      map.addListener("bounds_changed", () => {
+        searchBox.setBounds(map.getBounds());
+      });
+
+      // Listen for the event fired when the user selects a prediction and retrieve
+      // more details for that place.
+      searchBox.addListener("places_changed", () => {
+        const places = searchBox.getPlaces();
+        if (places.length == 0) {
+          return;
+        }
+        // For each place, get the icon, name and location.
+        const bounds = new window.google.maps.LatLngBounds();
+
+        places.forEach((place) => {
+          if (!place.geometry || !place.geometry.location) {
+            console.log("Returned place contains no geometry");
+            return;
+          }
+          if (place.geometry.viewport) {
+            // Only geocodes have viewport.
+            bounds.union(place.geometry.viewport);
+          } else {
+            bounds.extend(place.geometry.location);
+            console.log(place.geometry.location);
+          }
+        });
+        this.centerLanLng = bounds;
+        map.fitBounds(bounds);
+        input.value = "";
+      });
     },
     filterLineColor(num) {
       // 路线颜色
