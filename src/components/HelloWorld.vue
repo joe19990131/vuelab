@@ -1,12 +1,6 @@
 <template>
   <div class="content">
     <div class="control_panel">
-      <input
-        id="pac_input"
-        class="controls"
-        type="text"
-        placeholder="Search Box"
-      />
       <button
         class="save_btn"
         @click="step === 'routeEdit' ? saveRoute() : startRoute()"
@@ -16,11 +10,10 @@
       >
         {{ step === "routeEdit" ? "保存路線" : "添加路線" }}
       </button>
-      <div class="discription">
-        <ul>
-          <li>點擊右鍵新增起訖點</li>
-          <li>單擊左鍵新增中繼點，雙擊刪除節點</li>
-        </ul>
+      <div class="routes">
+        <div class="route_item" v-for="(item, key) in savedRoutes" :key="key">
+          {{ item.name }}
+        </div>
       </div>
     </div>
     <div id="map"></div>
@@ -43,6 +36,11 @@ export default {
       startPointIcon: require("../assets/startPoint@0.25x.png"),
       endPointIcon: require("../assets/endPoint@0.25x.png"),
       midPointIcon: require("../assets/midPoint@0.5x.png"),
+      siteTypeList: [
+        { name: "醫療站", icon: require("../assets/1.png") },
+        { name: "AED醫療站", icon: require("../assets/2.png") },
+        { name: "補給站", icon: require("../assets/3.png") },
+      ],
       routeSettingFlag: true,
       distance: 0,
       step: "siteEdit",
@@ -81,6 +79,7 @@ export default {
           center: { lat: -34.397, lng: 150.644 },
           zoom: 18,
           mapTypeControl: false,
+          fullscreenControl: false,
           mapTypeId: "roadmap",
           clickableIcons: false,
         });
@@ -100,33 +99,12 @@ export default {
             that.map.setCenter(pos);
           }
         });
+        if (this.step === "routeEdit") {
+          this.tipEvent();
+          this.initAutoComplete();
+          this.siteBox();
+        }
 
-        this.initAutoComplete();
-
-        let div = document.createElement("div");
-        let mapDiv = document.getElementById("map");
-        div.setAttribute("id", "tip_content");
-        let newContent = document.createTextNode(this.tipContent);
-        div.appendChild(newContent);
-        div.style.backgroundColor = "white";
-        div.style.borderRadius = "4px";
-        div.style.padding = "4px 8px";
-        div.style.boxShadow = "2px 2px 4px black";
-        div.style.position = "fixed";
-        div.style.zIndex = "9999";
-        mapDiv.appendChild(div);
-        div.style.display = "none";
-
-        //click event
-        this.map.addListener("mousemove", function (e) {
-          div.style.display = "block";
-          div.style.top = `${e.domEvent.pageY - 30}px`;
-          div.style.left = `${e.domEvent.pageX + 5}px`;
-        });
-        this.map.addListener("mouseout", function () {
-          console.log("mouseout");
-          div.style.display = "none";
-        });
         this.map.addListener("click", function (event) {
           console.log(event);
           let pos = {
@@ -161,6 +139,8 @@ export default {
     },
 
     addPoint(pos, map, startEnd) {
+      this.tipContent = "點擊左鍵新增中繼點\n點擊右鍵結束繪製";
+      this.tipEvent();
       let icon;
 
       //icon判別
@@ -304,6 +284,7 @@ export default {
     startRoute() {
       this.step = "routeEdit";
       this.routeSettingFlag = true;
+      this.tipContent = "點擊右鍵開始繪製";
       this.initMap();
       console.log("start");
     },
@@ -320,6 +301,7 @@ export default {
           center: { lat: -34.397, lng: 150.644 },
           zoom: 18,
           mapTypeControl: false,
+          fullscreenControl: false,
           mapTypeId: "roadmap",
           clickableIcons: false,
         });
@@ -382,9 +364,21 @@ export default {
 
     initAutoComplete() {
       let map = this.map;
-      const input = document.getElementById("pac_input");
+      //const input = document.getElementById("pac_input");
+      const input = document.createElement("input");
+      input.setAttribute("id", "pac_input");
+      input.type = "text";
+      input.placeholder = "請輸入地點";
+      input.style.margin = "10px";
+      input.style.padding = "8px 12px";
+      input.style.boxShadow = "rgb(27 142 236 / 50%) 0px 2px 6px 0px";
+      input.style.fontSize = "16px";
+      //input.style.boxShadow = "inset 0 0 2px #808080";
+      input.style.borderRadius = "4px";
+      input.style.borderColor = "#808080";
+      input.style.border = "1px";
       const searchBox = new window.google.maps.places.SearchBox(input);
-      this.map.controls[window.google.maps.ControlPosition.TOP_LEFT].push(
+      this.map.controls[window.google.maps.ControlPosition.TOP_RIGHT].push(
         input
       );
       map.addListener("bounds_changed", () => {
@@ -418,6 +412,83 @@ export default {
         map.fitBounds(bounds);
         input.value = "";
       });
+    },
+    tipEvent() {
+      if (document.getElementById("tip_content")) {
+        document.getElementById("tip_content").remove();
+      }
+
+      let div = document.createElement("div");
+      let mapDiv = document.getElementById("map");
+      div.setAttribute("id", "tip_content");
+      let newContent = document.createTextNode(this.tipContent);
+      div.appendChild(newContent);
+      div.style.backgroundColor = "white";
+      div.style.borderRadius = "4px";
+      div.style.padding = "4px 8px";
+      div.style.boxShadow = "2px 2px 4px #808080";
+      div.style.position = "fixed";
+      div.style.zIndex = "9999";
+      mapDiv.appendChild(div);
+      div.style.display = "none";
+
+      //click event
+      this.map.addListener("mousemove", function (e) {
+        div.style.display = "block";
+        div.style.top = `${e.domEvent.pageY - 30}px`;
+        div.style.left = `${e.domEvent.pageX + 5}px`;
+      });
+      this.map.addListener("mouseout", function () {
+        console.log("mouseout");
+        div.style.display = "none";
+      });
+    },
+    siteBox() {
+      let siteBox = document.createElement("div");
+      siteBox.style.margin = "10px";
+      siteBox.style.backgroundColor = "#fff";
+      siteBox.style.display = "flex";
+      siteBox.style.flexDirection = "row";
+      siteBox.style.justifyContent = "center";
+      siteBox.style.alignItems = "center";
+      siteBox.style.boxShadow = "rgb(27 142 236 / 50%) 0px 2px 6px 0px";
+      siteBox.style.padding = "4px 12px";
+      siteBox.style.borderRadius = "4px";
+      this.siteTypeList.forEach((e) => {
+        let item = document.createElement("div");
+        item.onclick = function () {
+          console.log(e.name + " on click!");
+        };
+        item.style.cursor = "pointer";
+        item.style.display = "flex";
+        item.style.flexDirection = "row";
+        item.style.justifyContent = "center";
+        item.style.alignItems = "center";
+        item.style.padding = "4px 8px";
+        let icon = document.createElement("img");
+        icon.src = e.icon;
+        icon.style.height = "16px";
+        icon.style.width = "16px";
+        let text = document.createElement("span");
+        text.appendChild(document.createTextNode(e.name));
+        text.style.marginLeft = "4px";
+        item.appendChild(icon);
+        item.appendChild(text);
+        siteBox.appendChild(item);
+      });
+      let newSite = document.createElement("div");
+      newSite.appendChild(document.createTextNode("新增"));
+      newSite.onclick = function () {
+        console.log("newSite on click!");
+      };
+      newSite.style.cursor = "pointer";
+      newSite.style.color = "#1890FF";
+      newSite.style.marginLeft = "12px";
+      newSite.style.padding = "4px 8px";
+      siteBox.appendChild(newSite);
+      this.map.controls[window.google.maps.ControlPosition.LEFT_TOP].push(
+        siteBox
+      );
     },
     filterLineColor(num) {
       // 路线颜色
