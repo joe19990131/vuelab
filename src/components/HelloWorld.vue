@@ -454,11 +454,15 @@ export default {
       siteBox.style.boxShadow = "rgb(27 142 236 / 50%) 0px 2px 6px 0px";
       siteBox.style.padding = "4px 12px";
       siteBox.style.borderRadius = "4px";
-      this.siteTypeList.forEach((e) => {
+      this.siteTypeList.forEach((event) => {
         let item = document.createElement("div");
         item.onclick = function () {
-          console.log(e.name + " on click!");
+          console.log(event.name + " on click!");
         };
+        item.oncontextmenu = function(e){
+           e.preventDefault();
+          console.log(event.name+"on right click");
+        }
         item.style.cursor = "pointer";
         item.style.display = "flex";
         item.style.flexDirection = "row";
@@ -466,11 +470,11 @@ export default {
         item.style.alignItems = "center";
         item.style.padding = "4px 8px";
         let icon = document.createElement("img");
-        icon.src = e.icon;
+        icon.src = event.icon;
         icon.style.height = "16px";
         icon.style.width = "16px";
         let text = document.createElement("span");
-        text.appendChild(document.createTextNode(e.name));
+        text.appendChild(document.createTextNode(event.name));
         text.style.marginLeft = "4px";
         item.appendChild(icon);
         item.appendChild(text);
