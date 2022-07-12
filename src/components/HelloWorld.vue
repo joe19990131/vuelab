@@ -163,7 +163,8 @@ export default {
       } else {
         icon = {
           url: this.step === "routeEdit" ? this.midPointIcon : "",
-          anchor: new window.google.maps.Point(0, 10),
+          anchor: new window.google.maps.Point(10, 10),
+          size: new window.google.maps.Size(40, 40),
         };
       }
 
@@ -172,9 +173,12 @@ export default {
         map: map,
         zIndex: 1100,
         icon: icon,
+        //label: { text: "標", color: "#fff" },
       });
 
-      marker.addListener("dblclick", () => {
+      marker.addListener("dblclick", (e) => {
+        console.log(e.latLng.toJSON());
+        
         console.log("dblc");
         if (this.step === "routeEdit") {
           if (
@@ -254,6 +258,9 @@ export default {
             that.distancePopup.setOptions({
               content: `<div>${that.distance} 公尺</div>`,
               position: that.routePoints[that.routePoints.length - 1],
+            });
+            that.distancePopup.addListener("visible", function (e) {
+              console.log(e);
             });
             that.distancePopup.open(map);
             let points = [];
@@ -365,21 +372,32 @@ export default {
     initAutoComplete() {
       let map = this.map;
       //const input = document.getElementById("pac_input");
+      const container = document.createElement("div");
+      container.style.padding = "8px 12px";
+      container.style.margin = "10px";
+      container.style.borderRadius = "8px";
+      container.style.backgroundColor = "white";
+      container.style.boxShadow = "rgb(27 142 236 / 50%) 0px 2px 6px 0px";
+      container.style.display = "flex";
+      container.style.flexDirection = "row";
+      container.style.justifyContent = "flex-start";
+      container.style.alignItems = "center";
+      container.appendChild(document.createTextNode("地點搜索："));
       const input = document.createElement("input");
+      container.appendChild(input);
       input.setAttribute("id", "pac_input");
       input.type = "text";
       input.placeholder = "請輸入地點";
-      input.style.margin = "10px";
+
       input.style.padding = "8px 12px";
-      input.style.boxShadow = "rgb(27 142 236 / 50%) 0px 2px 6px 0px";
+      input.style.border = "1px  solid rgb(200,200,200)";
+      input.style.borderRadius = "4px";
       input.style.fontSize = "16px";
       //input.style.boxShadow = "inset 0 0 2px #808080";
-      input.style.borderRadius = "4px";
-      input.style.borderColor = "#808080";
-      input.style.border = "1px";
+
       const searchBox = new window.google.maps.places.SearchBox(input);
       this.map.controls[window.google.maps.ControlPosition.TOP_RIGHT].push(
-        input
+        container
       );
       map.addListener("bounds_changed", () => {
         searchBox.setBounds(map.getBounds());
@@ -445,6 +463,18 @@ export default {
     },
     siteBox() {
       let siteBox = document.createElement("div");
+      siteBox.style.cssText = `
+      margin : 10px;
+      background-color : #fff;
+      display : flex;
+      flex-direction : row;
+      justify-content : center;
+      align-items : center;
+      box-shadow : rgb(27 142 236 / 50%) 0px 2px 6px 0px;
+      padding : 4px 12px;
+      border-radius : 4px;
+      `;
+      /*
       siteBox.style.margin = "10px";
       siteBox.style.backgroundColor = "#fff";
       siteBox.style.display = "flex";
@@ -454,15 +484,17 @@ export default {
       siteBox.style.boxShadow = "rgb(27 142 236 / 50%) 0px 2px 6px 0px";
       siteBox.style.padding = "4px 12px";
       siteBox.style.borderRadius = "4px";
+      */
       this.siteTypeList.forEach((event) => {
         let item = document.createElement("div");
         item.onclick = function () {
           console.log(event.name + " on click!");
         };
-        item.oncontextmenu = function(e){
-           e.preventDefault();
-          console.log(event.name+"on right click");
-        }
+        item.oncontextmenu = function (e) {
+          e.preventDefault();
+          console.log(event.name + "on right click");
+        };
+
         item.style.cursor = "pointer";
         item.style.display = "flex";
         item.style.flexDirection = "row";
