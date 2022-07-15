@@ -264,8 +264,9 @@ export default {
             });
             that.distancePopup.open(map);
             let points = [];
+            console.log(res.routes[0].overview_path[0].toJSON());
             res.routes[0].overview_path.forEach((point) => {
-              points.push(point);
+              points.push(point.toJSON());
             });
             that.polyLinePoint = {
               name: `route${that.savedRoutes.length + 1}`,
@@ -295,13 +296,36 @@ export default {
       this.initMap();
       console.log("start");
     },
+    geoCode(latLng){
+      let req = {
+        location:latLng,
+      }
+      let geocoder = new window.google.maps.Geocoder()
+      geocoder.geocode(req,(results,status)=>{
+        if(status === "OK"){
+          console.log('geocode result:');
+          console.log(results);
+          console.log('geocode result city:');
+          let addrCountry = results[results.length-1].formatted_address
+          let addrCity = results[results.length-2].formatted_address
+          console.log(addrCity.slice(addrCountry.length));
 
+        }
+      })
+    },
     saveRoute() {
       //road save api here
       this.routeSettingFlag = true;
       this.step = "siteEdit";
       this.savedRoutes.push(this.polyLinePoint);
-      console.log(this.savedRoutes);
+      
+      console.log(this.polyLinePoint.points[parseInt(this.polyLinePoint.points.length/2)]);
+      let geocodeReq = {
+        lat:this.polyLinePoint.points[parseInt(this.polyLinePoint.points.length/2)].lat,
+        lng:this.polyLinePoint.points[parseInt(this.polyLinePoint.points.length/2)].lng
+      }
+      console.log(geocodeReq);
+      this.geoCode(geocodeReq)
       this.loader.load().then(() => {
         this.map = new window.google.maps.Map(document.getElementById("map"), {
           mapId: "5216cd334b4588dc",
